@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
+const jwt = require('jsonwebtoken');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const e = require('express');
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -40,6 +42,122 @@ async function run() {
         const AnnouncementCollaction = client.db("BuildSync").collection('Announcement')
         
 
+        app.post('/jwt',async(req,res)=>{
+            const user = req.body
+            const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECTET,{
+                expiresIn: '1h' })
+                res.send({ token })
+        })
+
+
+        const verifyToken = (req,res,next)=>{
+            // console.log("verify Token",req.headers.authorization)
+            if(!req.headers.authorization){
+                return res.status(401).send({message: "forbidden access"})
+            }
+            const token = req.headers.authorization.split(' ')[1]
+            jwt.verify(token,process.env.ACCESS_TOKEN_SECTET,(err,decoded) =>{
+                if(err){
+                    return res.status(401).send({message: "forbidden access"})
+                }
+                req.decoded = decoded
+                
+                next()
+            })
+           
+
+        }
+
+
+        const verifyAdmin =async(req,res,next)=>{
+            const email = req.decoded?.email
+            const query = {Email: email}
+            const user = await UserCollaction.findOne(query)
+            const isAdmin = user?.Role === "admin"
+            if(!isAdmin){
+                return res.status(403).send({message: "forbidden access"})
+            }
+            next()
+
+        }
+
+
+        app.get("/user/admin/:email",verifyToken, async (req,res)=>{
+            const email = req.params.email
+            console.log("email",email);
+            if(email !== req.decoded?.email){
+                return res.status(403).send({message: "unauthorized access"})
+            }
+            const query = {Email: email}
+            const user = await UserCollaction.findOne(query)
+            console.log(user);
+            let admin = false
+            if(user){
+                admin =user?.Role === "admin"
+                
+            }
+            res.send({ admin })
+        })
+
+
+        app.get("/user/member/:email",verifyToken, async (req,res)=>{
+            const email = req.params.email
+            console.log("email",email);
+            if(email !== req.decoded?.email){
+                return res.status(403).send({message: "unauthorized access"})
+            }
+            const query = {Email: email}
+            const user = await UserCollaction.findOne(query)
+            console.log(user);
+            let Member = false
+            if(user){
+                Member =user?.Role === "Member"
+                
+            }
+            res.send({ Member })
+        })
+
+
+        app.get('/rents/:email' , async (req, res) => {
+            const email = req.params.email
+            const query = { email: email }
+            const result = await RentsCollaction.find(query).toArray()
+            // const statusdata = result.Status === "checked"
+            // if(statusdata){
+                
+            //     res.send(result)
+            // }
+
+            res.send(result)
+
+        })
+
+
+
+        // app.get("/user/user/:email",verifyToken, async (req,res)=>{
+        //     const email = req.params.email
+        //     console.log("email",email);
+        //     if(email !== req.decoded?.email){
+        //         return res.status(403).send({message: "unauthorized access"})
+        //     }
+        //     const query = {Email: email}
+        //     const newUser = await UserCollaction.findOne(query)
+        //     console.log(newUser);
+        //     let user = false
+        //     if(newUser){
+        //         user =newUser?.Role === "users"
+                
+        //     }
+        //     res.send({ user })
+        // })
+
+
+        
+        
+
+
+
+
         app.get('/announcement', async (req, res) => {
             const cursor = AnnouncementCollaction.find()
             const result = await cursor.toArray()
@@ -76,7 +194,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/rents' , async (req, res) => {
+        app.post('/rents' ,verifyToken, async (req, res) => {
             const addProduct = req.body
             console.log(addProduct);
             const result = await RentsCollaction.insertOne(addProduct)
@@ -92,7 +210,8 @@ async function run() {
         })
 
 
-        app.get('/users', async (req, res) => {
+        app.get('/users',  async (req, res) => {
+            
             const cursor = UserCollaction.find()
             const result = await cursor.toArray()
             res.send(result)
@@ -172,6 +291,8 @@ async function run() {
             const Updates = {
                 $set: {
                     Status: UpdateProduct.Status,
+                    AcceptDate: UpdateProduct.AcceptDate
+                    
                     
                 }
             }
@@ -193,6 +314,7 @@ async function run() {
             const Updates = {
                 $set: {
                     Role: UpdateProduct.Role,
+                    Name: UpdateProduct.name,
                     
                 }
             }
