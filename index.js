@@ -4,6 +4,9 @@ require('dotenv').config()
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const e = require('express');
+const stripe = require('stripe')(process.env.STRIPE_TOKEN_SECTET)
+
+
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -40,6 +43,8 @@ async function run() {
         const RentsCollaction = client.db("BuildSync").collection('Rents')
         const UserCollaction = client.db("BuildSync").collection('User')
         const AnnouncementCollaction = client.db("BuildSync").collection('Announcement')
+        const CouponsCollaction = client.db("BuildSync").collection('Coupons')
+        const PaymentHistoryCollaction = client.db("BuildSync").collection('Payment History')
         
 
         app.post('/jwt',async(req,res)=>{
@@ -102,7 +107,7 @@ async function run() {
 
         app.get("/user/member/:email",verifyToken, async (req,res)=>{
             const email = req.params.email
-            console.log("email",email);
+            // console.log("email",email);
             if(email !== req.decoded?.email){
                 return res.status(403).send({message: "unauthorized access"})
             }
@@ -121,7 +126,7 @@ async function run() {
         app.get('/rents/:email' , async (req, res) => {
             const email = req.params.email
             const query = { email: email }
-            const result = await RentsCollaction.find(query).toArray()
+            const result = await RentsCollaction.find(query).sort({$natural:-1}).toArray()
             // const statusdata = result.Status === "checked"
             // if(statusdata){
                 
@@ -152,6 +157,18 @@ async function run() {
         // })
 
 
+
+        app.post('/paymentHistory' , async (req, res) => {
+            const addProduct = req.body
+            console.log(addProduct);
+            const result = await PaymentHistoryCollaction.insertOne(addProduct)
+            res.send(result)
+        })
+        app.get('/paymentHistory', async (req, res) => {
+            const cursor = PaymentHistoryCollaction.find()
+            const result = await cursor.toArray()
+            res.send(result)
+        })
         
         
 
@@ -173,11 +190,45 @@ async function run() {
         })
 
 
+        app.post('/coupons' , async (req, res) => {
+            const addProduct = req.body
+            console.log(addProduct);
+            const result = await CouponsCollaction.insertOne(addProduct)
+            res.send(result)
+        })
 
-
-        app.get('/apartments', async (req, res) => {
-            const cursor = ApartmentsCollaction.find()
+        app.get('/coupons', async (req, res) => {
+            const cursor = CouponsCollaction.find().sort({$natural:-1})
             const result = await cursor.toArray()
+            res.send(result)
+        })
+        app.get('/coupons/:Coupon' , async (req, res) => {
+            const CouponCode = req.params.Coupon
+            const query = { CouponCode: CouponCode }
+            const result = await CouponsCollaction.findOne(query)
+            res.send(result)
+
+        })
+
+
+
+
+        app.get('/pagination', async (req, res) => {
+            const count = await ApartmentsCollaction.estimatedDocumentCount()
+            
+            res.send({count})
+        })
+        app.get('/apartments', async (req, res) => {
+            const page = parseInt(req.query.page)
+            const size = parseInt(req.query.size)
+
+
+            console.log(req.query);
+            const cursor = ApartmentsCollaction.find()
+            const result = await cursor
+            .skip(page * size)
+            .limit(size)
+            .toArray()
             res.send(result)
         })
 
@@ -329,6 +380,26 @@ async function run() {
             const query ={ _id: new ObjectId(id) }
             const result = await UserCollaction.deleteOne(query)
             res.send(result)
+        })
+
+
+
+        app.post('/create-payment-intent',async(req,res) => {
+            const price = req.body
+            
+            const amount = parseInt(price.tk * 100)
+            console.log("data",amount)
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency : "usd",
+                payment_method_types: ["card"]
+                
+                
+                
+            })
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
         })
 
         
