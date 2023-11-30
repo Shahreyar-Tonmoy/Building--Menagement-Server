@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config()
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const e = require('express');
+
 const stripe = require('stripe')(process.env.STRIPE_TOKEN_SECTET)
 
 
@@ -70,7 +70,7 @@ async function run() {
                 next()
             })
            
-
+        
         }
 
 
@@ -139,22 +139,7 @@ async function run() {
 
 
 
-        // app.get("/user/user/:email",verifyToken, async (req,res)=>{
-        //     const email = req.params.email
-        //     console.log("email",email);
-        //     if(email !== req.decoded?.email){
-        //         return res.status(403).send({message: "unauthorized access"})
-        //     }
-        //     const query = {Email: email}
-        //     const newUser = await UserCollaction.findOne(query)
-        //     console.log(newUser);
-        //     let user = false
-        //     if(newUser){
-        //         user =newUser?.Role === "users"
-                
-        //     }
-        //     res.send({ user })
-        // })
+      
 
 
 
@@ -166,6 +151,12 @@ async function run() {
         })
         app.get('/paymentHistory', async (req, res) => {
             const cursor = PaymentHistoryCollaction.find()
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+        app.get('/status', async (req, res) => {
+            const query = { Status: "booked"}
+            const cursor = PaymentHistoryCollaction.find(query)
             const result = await cursor.toArray()
             res.send(result)
         })
@@ -218,6 +209,13 @@ async function run() {
             
             res.send({count})
         })
+
+        // app.get('/apartments/available', async (req, res) => {
+        //     const cursor = CouponsCollaction.find().sort({$natural:-1})
+        //     const result = await cursor.toArray()
+        //     res.send(result)
+        // })
+
         app.get('/apartments', async (req, res) => {
             const page = parseInt(req.query.page)
             const size = parseInt(req.query.size)
@@ -359,6 +357,10 @@ async function run() {
             const result = await RentsCollaction.deleteOne(query)
             res.send(result)
         })
+
+
+
+
         app.put('/users/:email' , async (req, res) => {
             const email = req.params.email
             const filter = { Email: email }
@@ -374,6 +376,10 @@ async function run() {
             const result = await UserCollaction.updateOne(filter, Updates, options)
             res.send(result)
         })
+
+
+
+
 
          app.delete('/users/:id' , async (req, res)=>{
             const id =req.params.id
