@@ -210,11 +210,7 @@ async function run() {
             res.send({count})
         })
 
-        // app.get('/apartments/available', async (req, res) => {
-        //     const cursor = CouponsCollaction.find().sort({$natural:-1})
-        //     const result = await cursor.toArray()
-        //     res.send(result)
-        // })
+        
 
         app.get('/apartments', async (req, res) => {
             const page = parseInt(req.query.page)
