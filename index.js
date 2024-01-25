@@ -39,12 +39,12 @@ async function run() {
         // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
-        const ApartmentsCollaction = client.db("E-Cash").collection('Apartments')
-        const RentsCollaction = client.db("E-Cash").collection('Rents')
-        const UserCollaction = client.db("E-Cash").collection('User')
-        const AnnouncementCollaction = client.db("E-Cash").collection('Announcement')
-        const CouponsCollaction = client.db("E-Cash").collection('Coupons')
-        const PaymentHistoryCollaction = client.db("E-Cash").collection('Payment History')
+        const ApartmentsCollaction = client.db("BuildSync").collection('Apartments')
+        const RentsCollaction = client.db("BuildSync").collection('Rents')
+        const UserCollaction = client.db("BuildSync").collection('User')
+        const AnnouncementCollaction = client.db("BuildSync").collection('Announcement')
+        const CouponsCollaction = client.db("BuildSync").collection('Coupons')
+        const PaymentHistoryCollaction = client.db("BuildSync").collection('Payment History')
         
 
         app.post('/jwt',async(req,res)=>{
@@ -418,9 +418,9 @@ run().catch(console.dir);
 
 
 app.get("/", (req, res) => {
-    res.send("E-Cash server is running")
+    res.send("BuildSync server is running")
 })
 
 app.listen(port, () => {
-    console.log(`E-Cash server is running on port : ${port}`);
+    console.log(`BuildSync server is running on port : ${port}`);
 })
